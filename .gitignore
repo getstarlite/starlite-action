@@ -7,12 +7,10 @@ build/
 lib/
 docs/
 dist/
-
-standardlint.json
-standardlint.results.json
+.aws-sam/
+package-lock.json
 
 # Files generated from tests
-test_repo/
 coverage/
 jest-coverage/
 **/jest-coverage/**
