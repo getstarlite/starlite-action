@@ -1,8 +1,13 @@
 #!/bin/bash -l
 
-set -euo pipefail
+set -eo pipefail #euo
 
-ENDPOINT_BASE="https://goi23dgidl.execute-api.eu-north-1.amazonaws.com"
+INTEGRATION_API_URL="https://goi23dgidl.execute-api.eu-north-1.amazonaws.com"
+
+MANIFEST_FILE="manifest.json"
+LINT_FILE="standardlint.json"
+RESULTS_FILE="standardlint.results.json"
+DEPLOYMENT_FILE="deployment.json"
 
 parse_arguments() {
   while [[ $# -gt 0 ]]; do
@@ -63,8 +68,14 @@ send_request() {
     return 1
   fi
 
-  RAW_RESPONSE=$(curl -s -w "\n%{http_code}" -X "$method" "$url" \
-    -d @"$data_file" -H "Content-Type: application/json")
+  if [[ -n $data_file ]]; then
+    RAW_RESPONSE=$(curl -s -w "\n%{http_code}" -X "$method" "$url" \
+      -d @"$data_file" -H "Content-Type: application/json")
+  else
+    RAW_RESPONSE=$(
+      curl -s -w "\n%{http_code}" -X "$method" "$url"
+    )
+  fi
 
   RESPONSE_BODY=$(echo "$RAW_RESPONSE" | sed '$d')
   HTTP_STATUS=$(echo "$RAW_RESPONSE" | tail -n 1)
@@ -78,93 +89,111 @@ send_request() {
   echo "✅ Request succeeded with HTTP Status: $HTTP_STATUS"
 }
 
+function get_baseline_id() {
+  json_object=$(cat "$MANIFEST_FILE" | tr ',' '\n')
+
+  baseline_id=$(printf -- '%s\n' "${json_object}" | awk -F ':' '
+    /"baseline"/ { in_baseline = 1 }
+    in_baseline && /"id"/ { gsub(/"/, "", $NF); print $NF; in_baseline = 0 }
+')
+
+  echo ${baseline_id:-default}
+}
+
 handle_deployment() {
   local current_git_sha
 
-  # Check if Git is installed
   if ! command -v git >/dev/null 2>&1; then
     echo "❌ ERROR: Git is not installed. Cannot proceed with deployment." >&2
     return 1
   fi
 
-  # Get the current Git SHA or handle errors gracefully
   if ! current_git_sha=$(git log --pretty=format:'%H' -n 1 2>/dev/null); then
     echo "⚠️ WARNING: Git repository has no commits or is invalid. Using fallback SHA." >&2
     current_git_sha="demo_commit_sha"
   fi
 
-  # Create deployment data
-  local deployment_file="deployment.json"
-  cat >"$deployment_file" <<EOF
+  cat >"$DEPLOYMENT_FILE" <<EOF
 {
   "event": "deployment",
   "commitSha": "$current_git_sha"
 }
 EOF
 
-  # Send deployment data
-  local url="$ENDPOINT_BASE/event/$ORG_ID/$RECORD_ID/$TOKEN"
-  if ! send_request "$url" "POST" "$deployment_file"; then
+  local url="$INTEGRATION_API_URL/event/$ORG_ID/$RECORD_ID/$TOKEN"
+  if ! send_request "$url" "POST" "$DEPLOYMENT_FILE"; then
     echo "❌ ERROR: Failed to send deployment data." >&2
-    rm -f "$deployment_file"
+    rm -f "$DEPLOYMENT_FILE"
     return 1
   fi
 
   echo "✅ Deployment data successfully sent."
-  rm -f "$deployment_file"
+  rm -f "$DEPLOYMENT_FILE"
   return 0
 }
 
 handle_standards() {
-  if [[ -f "standardlint.json" ]]; then
-    if command -v node &>/dev/null; then
-      npm install standardlint
-      npx standardlint --output
-    else
-      echo "❌ Node.js is required to generate Standards output. Please make sure you have Node and NPM in your environment."
-      exit 1
-    fi
+  if command -v node &>/dev/null; then
+    local baseline_id=""
+
+    baseline_id=$(get_baseline_id)
+
+    local url="$INTEGRATION_API_URL/baselines/$ORG_ID/$baseline_id/$RECORD_ID/$TOKEN"
+    echo "URL is $url"
+
+    curl -s -o "$LINT_FILE" "$url"
+
+    npm install standardlint
+    npx standardlint --output
+
+    rm -f $LINT_FILE
+  else
+    echo "❌ Node.js is required to generate Standards output. Please make sure you have Node and NPM in your environment."
+    exit 1
   fi
 
-  if [[ -f "standardlint.results.json" ]]; then
-    local url="$ENDPOINT_BASE/standards/$ORG_ID/$RECORD_ID/$TOKEN"
-    send_request "$url" "POST" "standardlint.results.json"
+  if [[ -f "$RESULTS_FILE" ]]; then
+    local url="$INTEGRATION_API_URL/standards/$ORG_ID/$RECORD_ID/$TOKEN"
+
+    send_request "$url" "POST" "$RESULTS_FILE"
+
+    rm -f $RESULTS_FILE
   else
     echo "⚠️ No standards results file found; skipping."
   fi
 }
 
 handle_record() {
-  if [[ -f "manifest.json" ]]; then
-    echo "Uploading record to Starlite..."
-    local url="$ENDPOINT_BASE/record/$ORG_ID/$RECORD_ID/$TOKEN"
-    send_request "$url" "POST" "manifest.json"
-  else
-    echo "⚠️ No manifest file found; skipping."
-  fi
+  echo "Uploading record to Starlite..."
+
+  local url="$INTEGRATION_API_URL/record/$ORG_ID/$RECORD_ID/$TOKEN"
+
+  send_request "$url" "POST" "$MANIFEST_FILE"
 }
 
 main() {
   parse_arguments "$@" || exit 1
   validate_arguments || exit 1
 
-  case "$ACTION" in
-  "deployment")
-    handle_deployment
-    ;;
-  "standards")
-    handle_standards
-    ;;
-  "record")
-    handle_record
-    ;;
-  *)
-    echo "❌ ERROR: Invalid action: $ACTION" >&2
-    exit 1
-    ;;
-  esac
+  if [[ -f "$MANIFEST_FILE" ]]; then
+    case "$ACTION" in
+    "deployment")
+      handle_deployment
+      ;;
+    "standards")
+      handle_standards
+      ;;
+    "record")
+      handle_record
+      ;;
+    *)
+      echo "❌ ERROR: Invalid action: $ACTION" >&2
+      exit 1
+      ;;
+    esac
 
-  echo "✅ Starlite has completed successfully!"
+    echo "✅ Starlite has completed successfully!"
+  fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then main "$@"; fi

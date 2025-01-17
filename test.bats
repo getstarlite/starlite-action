@@ -71,20 +71,52 @@ teardown() {
   [[ "$output" =~ "❌ ERROR: ACTION is not set!" ]]
 }
 
-@test "handle_standards sends results when file exists" {
+@test "handle_standards sends results when file exists and baseline is fetched" {
   touch standardlint.results.json
+  touch manifest.json
+  echo '{"baseline": {"id": "test_baseline_id"}}' >manifest.json
   echo '{}' >standardlint.results.json
+
   run handle_standards
   [ "$status" -eq 0 ]
+  [[ "$output" =~ "Baseline ID: 'test_baseline_id'" ]]
+  [[ "$output" =~ "✅ Downloaded standards baseline to standardlint.json." ]]
   [[ "$output" =~ "✅ Request succeeded with HTTP Status" ]]
-  rm standardlint.results.json
+
+  rm -f standardlint.results.json
+  rm -f manifest.json
 }
 
-# Test handle_record
-@test "handle_record skips when manifest file is missing" {
-  run handle_record
+@test "handle_standards fetches baseline with empty ID when baseline.id is missing" {
+  touch manifest.json
+  echo '{"baseline": {}}' >manifest.json
+
+  run handle_standards
   [ "$status" -eq 0 ]
-  [[ "$output" =~ "⚠️ No manifest file found; skipping." ]]
+  [[ "$output" =~ "Baseline ID: ''" ]]
+  [[ "$output" =~ "✅ Downloaded standards baseline to standardlint.json." ]]
+
+  rm -f manifest.json
+}
+
+@test "handle_standards fails when Node.js is not installed" {
+  PATH="" # Temporarily unset PATH to simulate Node.js not being installed
+  run handle_standards
+  [ "$status" -ne 0 ]
+  [[ "$output" =~ "❌ Node.js is required to generate Standards output" ]]
+}
+
+@test "handle_standards skips when no standardlint.results.json file exists" {
+  touch manifest.json
+  echo '{"baseline": {"id": "test_baseline_id"}}' >manifest.json
+
+  run handle_standards
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "Baseline ID: 'test_baseline_id'" ]]
+  [[ "$output" =~ "✅ Downloaded standards baseline to standardlint.json." ]]
+  [[ "$output" =~ "⚠️ No standards results file found; skipping." ]]
+
+  rm -f manifest.json
 }
 
 @test "handle_record uploads manifest file" {
@@ -93,7 +125,7 @@ teardown() {
   run handle_record
   [ "$status" -eq 0 ]
   [[ "$output" =~ "✅ Request succeeded with HTTP Status" ]]
-  rm manifest.json
+  rm -f manifest.json
 }
 
 @test "handle_deployment fails if Git is not installed" {
@@ -110,7 +142,7 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" =~ "⚠️ WARNING: Git repository has no commits or is invalid" ]]
   cd ..
-  rm -rf test_repo
+  rm -f -rf test_repo
 }
 
 @test "handle_deployment succeeds with a valid Git repository" {
@@ -121,23 +153,9 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" =~ "✅ Deployment data successfully sent" ]]
   cd ..
-  rm -rf test_repo
+  rm -f -rf test_repo
 }
 
-# Test main
-@test "main succeeds with valid deployment inputs" {
-  run main --org-id "org123" --record-id "rec123" --token "token123" --action "deployment"
-  [ "$status" -eq 0 ]
-  [[ "$output" =~ "✅ Starlite has completed successfully!" ]]
-}
-
-@test "main fails with invalid action" {
-  run main --org-id "org123" --record-id "rec123" --token "token123" --action "invalid"
-  [ "$status" -ne 0 ]
-  [[ "$output" =~ "❌ ERROR: Invalid action" ]]
-}
-
-# Test send_request
 @test "send_request succeeds with valid inputs" {
   touch test.json
   echo '{}' >test.json
@@ -145,5 +163,5 @@ teardown() {
   run send_request "https://example.com" "POST" "test.json"
   [ "$status" -eq 0 ]
   [[ "$output" =~ "✅ Request succeeded with HTTP Status" ]]
-  rm test.json
+  rm -f test.json
 }

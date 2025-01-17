@@ -1,6 +1,0 @@
-{
-  "checks": [
-    { "name": "checkForPresenceContributing", "severity": "warn" },
-    { "name": "checkForPresenceLicense", "severity": "error" }
-  ]
-}
