@@ -139,7 +139,6 @@ handle_standards() {
     baseline_id=$(get_baseline_id)
 
     local url="$INTEGRATION_API_URL/baselines/$ORG_ID/$baseline_id/$RECORD_ID/$TOKEN"
-    echo "URL is $url"
 
     curl -s -o "$LINT_FILE" "$url"
 
