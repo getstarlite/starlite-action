@@ -4,7 +4,7 @@ set -eo pipefail #euo
 
 INTEGRATION_API_URL="https://goi23dgidl.execute-api.eu-north-1.amazonaws.com"
 
-MANIFEST_FILE="manifest.json"
+MANIFEST_FILE="starlite.manifest.json"
 LINT_FILE="standardlint.json"
 RESULTS_FILE="standardlint.results.json"
 DEPLOYMENT_FILE="deployment.json"

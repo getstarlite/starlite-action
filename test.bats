@@ -73,8 +73,8 @@ teardown() {
 
 @test "handle_standards sends results when file exists and baseline is fetched" {
   touch standardlint.results.json
-  touch manifest.json
-  echo '{"baseline": {"id": "test_baseline_id"}}' >manifest.json
+  touch starlite.manifest.json
+  echo '{"baseline": {"id": "test_baseline_id"}}' >starlite.manifest.json
   echo '{}' >standardlint.results.json
 
   run handle_standards
@@ -84,19 +84,19 @@ teardown() {
   [[ "$output" =~ "✅ Request succeeded with HTTP Status" ]]
 
   rm -f standardlint.results.json
-  rm -f manifest.json
+  rm -f starlite.manifest.json
 }
 
 @test "handle_standards fetches baseline with empty ID when baseline.id is missing" {
-  touch manifest.json
-  echo '{"baseline": {}}' >manifest.json
+  touch starlite.manifest.json
+  echo '{"baseline": {}}' >starlite.manifest.json
 
   run handle_standards
   [ "$status" -eq 0 ]
   [[ "$output" =~ "Baseline ID: ''" ]]
   [[ "$output" =~ "✅ Downloaded standards baseline to standardlint.json." ]]
 
-  rm -f manifest.json
+  rm -f starlite.manifest.json
 }
 
 @test "handle_standards fails when Node.js is not installed" {
@@ -107,8 +107,8 @@ teardown() {
 }
 
 @test "handle_standards skips when no standardlint.results.json file exists" {
-  touch manifest.json
-  echo '{"baseline": {"id": "test_baseline_id"}}' >manifest.json
+  touch starlite.manifest.json
+  echo '{"baseline": {"id": "test_baseline_id"}}' >starlite.manifest.json
 
   run handle_standards
   [ "$status" -eq 0 ]
@@ -116,16 +116,16 @@ teardown() {
   [[ "$output" =~ "✅ Downloaded standards baseline to standardlint.json." ]]
   [[ "$output" =~ "⚠️ No standards results file found; skipping." ]]
 
-  rm -f manifest.json
+  rm -f starlite.manifest.json
 }
 
 @test "handle_record uploads manifest file" {
-  touch manifest.json
-  echo '{}' >manifest.json
+  touch starlite.manifest.json
+  echo '{}' >starlite.manifest.json
   run handle_record
   [ "$status" -eq 0 ]
   [[ "$output" =~ "✅ Request succeeded with HTTP Status" ]]
-  rm -f manifest.json
+  rm -f starlite.manifest.json
 }
 
 @test "handle_deployment fails if Git is not installed" {

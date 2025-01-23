@@ -8,7 +8,7 @@ You need to set a required secret for an API key, then you are greenlit to just 
 
 ### Updating the record
 
-The record (service catalog) step requires you to have a `manifest.json` file on disk.
+The record (service catalog) step requires you to have a `starlite.manifest.json` file on disk.
 
 Please see the [Catalogist documentation](https://github.com/mikaelvesavuori/catalogist#manifest) for more details.
 
