@@ -2,7 +2,7 @@
 
 set -eo pipefail #euo
 
-INTEGRATION_API_URL="https://goi23dgidl.execute-api.eu-north-1.amazonaws.com"
+INTEGRATION_API_URL="https://yxps8w6g0a.execute-api.eu-north-1.amazonaws.com"
 
 MANIFEST_FILE="starlite.manifest.json"
 LINT_FILE="standardlint.json"
