@@ -37,17 +37,17 @@ runs:
           if [[ -f "$MANIFEST_PATH" ]]; then
             echo "Manifest file found."
             RECORD_ID=$(grep -o '"id"[[:space:]]*:[[:space:]]*".*"' "$MANIFEST_PATH" | awk -F':' '{gsub(/[", ]/, "", $2); print $2}')
-            echo "Inferred RECORD_ID: $RECORD_ID"
+            echo "Inferred Record ID: $RECORD_ID"
           fi
 
           if [[ -z "$RECORD_ID" ]]; then
-            echo "❌ ERROR: RECORD_ID is not set and could not be inferred from the manifest file!" >&2
+            echo "❌ ERROR: Record ID is not set and could not be inferred from the manifest file!" >&2
             exit 1
           fi
 
           echo "record-id=$RECORD_ID" >> "$GITHUB_ENV"
         else
-          echo "Using provided RECORD_ID: ${{ inputs.record-id }}"
+          echo "Using provided Record ID: ${{ inputs.record-id }}"
           echo "record-id=${{ inputs.record-id }}" >> "$GITHUB_ENV"
         fi
       shell: bash
