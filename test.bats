@@ -50,11 +50,41 @@ teardown() {
   [[ "$output" =~ "❌ ERROR: ORG_ID is not set!" ]]
 }
 
-@test "validate_arguments fails when RECORD_ID is missing" {
+@test "validate_arguments fails when RECORD_ID is missing and cannot be inferred" {
   unset RECORD_ID
+
+  # Create a temporary manifest file without an "id" key
+  local manifest_file="test_manifest.json"
+  echo '{}' >"$manifest_file"
+
+  MANIFEST_FILE="$manifest_file"
   run validate_arguments
+
+  # Ensure the function fails and outputs the appropriate error
   [ "$status" -ne 0 ]
-  [[ "$output" =~ "❌ ERROR: RECORD_ID is not set!" ]]
+  [[ "$output" =~ "❌ ERROR: RECORD_ID is not set and could not be inferred from '$manifest_file'!" ]]
+
+  # Cleanup
+  rm -f "$manifest_file"
+}
+
+@test "validate_arguments succeeds when RECORD_ID is inferred from the manifest file" {
+  unset RECORD_ID
+
+  # Create a temporary manifest file with an "id" key
+  local manifest_file="test_manifest.json"
+  echo '{"id": "test-id"}' >"$manifest_file"
+
+  MANIFEST_FILE="$manifest_file"
+  run validate_arguments
+
+  # Ensure the function succeeds and RECORD_ID is set correctly
+  [ "$status" -eq 0 ]
+  [[ -n "$RECORD_ID" ]]
+  [[ "$RECORD_ID" == "test-id" ]]
+
+  # Cleanup
+  rm -f "$manifest_file"
 }
 
 @test "validate_arguments fails when TOKEN is missing" {

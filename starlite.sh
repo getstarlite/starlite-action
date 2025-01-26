@@ -43,8 +43,16 @@ validate_arguments() {
   fi
 
   if [ -z "${RECORD_ID:-}" ]; then
-    echo "❌ ERROR: RECORD_ID is not set!" >&2
-    return 1
+    if [[ -f "$MANIFEST_FILE" ]]; then
+      RECORD_ID=$(grep -o '"id"[[:space:]]*:[[:space:]]*".*"' "$MANIFEST_FILE" | awk -F':' '{gsub(/[", ]/, "", $2); print $2}')
+    fi
+
+    echo "RECORD_ID is $RECORD_ID"
+
+    if [ -z "${RECORD_ID:-}" ]; then
+      echo "❌ ERROR: RECORD_ID is not set and could not be inferred from '$MANIFEST_FILE'!" >&2
+      return 1
+    fi
   fi
 
   if [ -z "${TOKEN:-}" ]; then

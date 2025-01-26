@@ -1,7 +1,7 @@
 {
   "name": "starlite-action-alpha",
   "description": "Integrates your data with Starlite",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "author": "Starlite",
   "keywords": [
     "starlite",
