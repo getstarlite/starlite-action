@@ -45,6 +45,7 @@ runs:
         else
           echo "record-id=${{ inputs.record-id }}" >> "$GITHUB_ENV"
         fi
+      shell: bash
 
     - name: Update record
       if: ${{ inputs.run-record == 'true' }}
