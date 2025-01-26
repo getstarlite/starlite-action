@@ -31,9 +31,12 @@ runs:
     - name: Infer record ID
       id: infer-record-id
       run: |
+        MANIFEST_PATH="${{ github.workspace }}/starlite.manifest.json"
+
         if [[ -z "${{ inputs.record-id }}" ]]; then
-          if [[ -f "${{ github.action_path }}/starlite.manifest.json" ]]; then
-            RECORD_ID=$(grep -o '"id"[[:space:]]*:[[:space:]]*".*"' "${{ github.action_path }}/starlite.manifest.json" | awk -F':' '{gsub(/[", ]/, "", $2); print $2}')
+          if [[ -f "$MANIFEST_PATH" ]]; then
+            echo "Manifest file found."
+            RECORD_ID=$(grep -o '"id"[[:space:]]*:[[:space:]]*".*"' "$MANIFEST_PATH" | awk -F':' '{gsub(/[", ]/, "", $2); print $2}')
           fi
 
           if [[ -z "$RECORD_ID" ]]; then
