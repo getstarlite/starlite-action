@@ -54,15 +54,15 @@ runs:
 
     - name: Update record
       if: ${{ inputs.run-record == 'true' }}
-      run: ${{ github.action_path }}/starlite.sh --org-id ${{ inputs.org-id }} --record-id ${{ env.RECORD_ID }} --token ${{ inputs.api-key }} --action "record"
+      run: ${{ github.action_path }}/starlite.sh --org-id ${{ inputs.org-id }} --record-id ${{ env.record-id }} --token ${{ inputs.api-key }} --action "record"
       shell: bash
 
     - name: Update standards
       if: ${{ inputs.run-standards == 'true' }}
-      run: ${{ github.action_path }}/starlite.sh --org-id ${{ inputs.org-id }} --record-id ${{ env.RECORD_ID }} --token ${{ inputs.api-key }} --action "standards"
+      run: ${{ github.action_path }}/starlite.sh --org-id ${{ inputs.org-id }} --record-id ${{ env.record-id }} --token ${{ inputs.api-key }} --action "standards"
       shell: bash
 
     - name: Create deployment event
       if: ${{ inputs.run-deployment == 'true' }}
-      run: ${{ github.action_path }}/starlite.sh --org-id ${{ inputs.org-id }} --record-id ${{ env.RECORD_ID }} --token ${{ inputs.api-key }} --action "deployment"
+      run: ${{ github.action_path }}/starlite.sh --org-id ${{ inputs.org-id }} --record-id ${{ env.record-id }} --token ${{ inputs.api-key }} --action "deployment"
       shell: bash
