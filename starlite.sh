@@ -38,8 +38,14 @@ parse_arguments() {
 
 validate_arguments() {
   if [ -z "${ORG_ID:-}" ]; then
-    echo "❌ ERROR: ORG_ID is not set!" >&2
-    return 1
+    if [[ -f "$MANIFEST_FILE" ]]; then
+      ORG_ID=$(grep -o '"organizationId"[[:space:]]*:[[:space:]]*".*"' "$MANIFEST_FILE" | awk -F':' '{gsub(/[", ]/, "", $2); print $2}')
+    fi
+
+    if [ -z "${ORG_ID:-}" ]; then
+      echo "❌ ERROR: ORG_ID is not set and could not be inferred from '$MANIFEST_FILE'!" >&2
+      return 1
+    fi
   fi
 
   if [ -z "${RECORD_ID:-}" ]; then

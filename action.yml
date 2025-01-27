@@ -28,14 +28,30 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Infer record ID
-      id: infer-record-id
+    - name: Infer IDs
+      id: infer-ids
       run: |
         MANIFEST_PATH="${{ github.workspace }}/starlite.manifest.json"
 
+        if [[ -z "${{ inputs.org-id }}" ]]; then
+          if [[ -f "$MANIFEST_PATH" ]]; then
+            ORG_ID=$(grep -o '"organizationId"[[:space:]]*:[[:space:]]*".*"' "$MANIFEST_PATH" | awk -F':' '{gsub(/[", ]/, "", $2); print $2}')
+            echo "Inferred Organization ID: $ORG_ID"
+          fi
+
+          if [[ -z "$ORG_ID" ]]; then
+            echo "❌ ERROR: Organization ID is not set and could not be inferred from the manifest file!" >&2
+            exit 1
+          fi
+
+          echo "org-id=$ORG_ID" >> "$GITHUB_ENV"
+        else
+          echo "Using provided Record ID: ${{ inputs.org-id }}"
+          echo "org-id=${{ inputs.org-id }}" >> "$GITHUB_ENV"
+        fi
+
         if [[ -z "${{ inputs.record-id }}" ]]; then
           if [[ -f "$MANIFEST_PATH" ]]; then
-            echo "Manifest file found."
             RECORD_ID=$(grep -o '"id"[[:space:]]*:[[:space:]]*".*"' "$MANIFEST_PATH" | awk -F':' '{gsub(/[", ]/, "", $2); print $2}')
             echo "Inferred Record ID: $RECORD_ID"
           fi
@@ -54,15 +70,15 @@ runs:
 
     - name: Update record
       if: ${{ inputs.run-record == 'true' }}
-      run: ${{ github.action_path }}/starlite.sh --org-id ${{ inputs.org-id }} --record-id ${{ env.record-id }} --token ${{ inputs.api-key }} --action "record"
+      run: ${{ github.action_path }}/starlite.sh --org-id ${{ env.org-id }} --record-id ${{ env.record-id }} --token ${{ inputs.api-key }} --action "record"
       shell: bash
 
     - name: Update standards
       if: ${{ inputs.run-standards == 'true' }}
-      run: ${{ github.action_path }}/starlite.sh --org-id ${{ inputs.org-id }} --record-id ${{ env.record-id }} --token ${{ inputs.api-key }} --action "standards"
+      run: ${{ github.action_path }}/starlite.sh --org-id ${{ env.org-id }} --record-id ${{ env.record-id }} --token ${{ inputs.api-key }} --action "standards"
       shell: bash
 
     - name: Create deployment event
       if: ${{ inputs.run-deployment == 'true' }}
-      run: ${{ github.action_path }}/starlite.sh --org-id ${{ inputs.org-id }} --record-id ${{ env.record-id }} --token ${{ inputs.api-key }} --action "deployment"
+      run: ${{ github.action_path }}/starlite.sh --org-id ${{ env.org-id }} --record-id ${{ env.record-id }} --token ${{ inputs.api-key }} --action "deployment"
       shell: bash
